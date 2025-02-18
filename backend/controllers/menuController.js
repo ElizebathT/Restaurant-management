@@ -1,28 +1,30 @@
 const asyncHandler = require("express-async-handler");
 const MenuItem = require("../models/menuItemModel");
-const User = require("../models/userModel");
 
 const menuController = {
     // Create a new menu item
     createMenuItem: asyncHandler(async (req, res) => {
-        const { name, description, price, image, category, availability, discount } = req.body;
+        const { name, description, price, stock, category, availability, discount, addons, dietaryRestrictions } = req.body;
         
         // Create new menu item
         const newItem = await MenuItem.create({
             name,
             description,
+            stock,
             price,
-            image:req.files,
+            image:req.files, // Assuming image is handled in the request files
             category,
             availability: availability || true, 
-            discount: discount || { percentage: 0, validUntil: null }
+            discount: discount || { percentage: 0, validUntil: null },
+            addons: addons || [],  // Add-ons field
+            dietaryRestrictions: dietaryRestrictions || []  // Dietary restrictions field
         });
-
+        
         if (!newItem) {
             throw new Error("Creation failed");
         }
-
-        res.status(201).json({
+        
+        res.send({
             message: "New menu item added successfully",
             menuItem: newItem
         });
@@ -34,43 +36,35 @@ const menuController = {
         res.json(menuItems);
     }),
 
-    // Get menu items by restaurant ID
-   
-    // Get a single menu item by ID
+    // Get a single menu item by name
     getMenuItemById: asyncHandler(async (req, res) => {
-        const {name } = req.body;
-        const menuItem = await MenuItem.findOne({name})
-
+        const { name } = req.body;
+        const menuItem = await MenuItem.findOne({ name });
         if (!menuItem) {
             return res.status(404).json({ message: "Menu item not found" });
         }
-
         res.json(menuItem);
     }),
 
     // Update a menu item
     updateMenuItem: asyncHandler(async (req, res) => {
-        const { name, description, price, image, category, availability, discount } = req.body;
-
-        // Find the menu item by ID
-        const menuItem = await MenuItem.findOne({name});
-
+        const { name, description, price, stock, category, availability, discount, addons, dietaryRestrictions } = req.body;
+        const menuItem = await MenuItem.findOne({ name });
         if (!menuItem) {
             return res.status(404).json({ message: "Menu item not found" });
         }
-
-        // Update the fields
+        
         menuItem.name = name || menuItem.name;
         menuItem.description = description || menuItem.description;
         menuItem.price = price || menuItem.price;
-        menuItem.image = image || menuItem.image;
+        menuItem.stock = stock || menuItem.stock;
         menuItem.category = category || menuItem.category;
-        menuItem.availability = availability !== undefined ? availability : menuItem.availability; // Only update if defined
+        menuItem.availability = availability !== undefined ? availability : menuItem.availability;
         menuItem.discount = discount || menuItem.discount;
-
-        // Save the updated menu item
+        menuItem.addons = addons || menuItem.addons;  // Update add-ons
+        menuItem.dietaryRestrictions = dietaryRestrictions || menuItem.dietaryRestrictions;  // Update dietary restrictions
+        
         const updatedMenuItem = await menuItem.save();
-
         res.send({
             message: "Menu item updated successfully",
             menuItem: updatedMenuItem
@@ -79,45 +73,42 @@ const menuController = {
 
     // Delete a menu item
     deleteMenuItem: asyncHandler(async (req, res) => {
-        const {name}=req.body
-
+        const { name } = req.body;
+        const menuItem = await MenuItem.findOne({ name });
         if (!menuItem) {
-            return res.status(404).json({ message: "Menu item not found" });
+            throw new Error("Menu item not found");
         }
-
-        // Delete the menu item
         await menuItem.deleteOne();
-
         res.json({ message: "Menu item deleted successfully" });
     }),
-    filterMenuItems:asyncHandler(async (req, res) => {
-          const currentUser = req.user; 
-          const { dietaryPreferences, allergies } = await User.findOne({_id:currentUser.id});
-          const { category, priceMin, priceMax } = req.body;
-          let filterQuery = {};
-          if (dietaryPreferences && dietaryPreferences.length > 0) {
-            filterQuery.dietaryRestrictions = { $in: dietaryPreferences };
-        }
-        if (allergies && allergies.length > 0) {
-            filterQuery.name = { $nin: allergies };
-        }
-          if (category) {
+
+    // Filter menu items by category, price range, and other options
+    filterMenuItems: asyncHandler(async (req, res) => {
+        const { category, priceMin, priceMax, dietaryRestrictions, addons } = req.body;
+        let filterQuery = {};
+
+        if (category) {
             filterQuery.category = category;
-          }
-          if (priceMin || priceMax) {
+        }
+        if (priceMin || priceMax) {
             filterQuery.price = {};
             if (priceMin) filterQuery.price.$gte = priceMin;
             if (priceMax) filterQuery.price.$lte = priceMax;
-          }
-          const filteredMenuItems = await MenuItem.find(filterQuery);
-      
-          if (!filteredMenuItems) {
+        }
+        if (dietaryRestrictions && dietaryRestrictions.length > 0) {
+            filterQuery.dietaryRestrictions = { $in: dietaryRestrictions }; // Match any of the specified dietary restrictions
+        }
+        if (addons && addons.length > 0) {
+            filterQuery.addons = { $in: addons }; // Match any of the specified add-ons
+        }
+
+        const filteredMenuItems = await MenuItem.find(filterQuery);
+        if (!filteredMenuItems.length) {
             res.send({ message: "No menu items found matching your criteria" });
-          }
-      
-         res.send({ menuItems: filteredMenuItems });
-        
-      })
+        }
+
+        res.send({ menuItems: filteredMenuItems });
+    })
 };
 
 module.exports = menuController;

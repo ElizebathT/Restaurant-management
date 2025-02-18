@@ -7,11 +7,6 @@ const OrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    restaurant: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
-      required: true,
-    },
     delivery: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Delivery",

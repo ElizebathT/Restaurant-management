@@ -30,33 +30,24 @@ const employeeController={
 }),
 
     getEmployees :asyncHandler(async (req, res) => {
-  try {
     const employees = await Employee.find()
       .populate("user", "username email role")  // Populate user details
       .populate("manager", "jobTitle username")  // Populate manager details
       .select("-__v");  // Exclude unnecessary fields
-    res.status(200).json(employees);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
+    res.send(employees);
 }),
 
 // Get an employee by ID
     getEmployeeById :asyncHandler(async (req, res) => {
-  try {
     const { id } = req.params;
     const employee = await Employee.findById(id)
       .populate("user", "username email role")
       .populate("manager", "jobTitle username");
 
     if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
+      throw new Error("Employee not found");
     }
-
-    res.status(200).json(employee);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
+    res.send(employee);
 }),
 
 // Update employee details

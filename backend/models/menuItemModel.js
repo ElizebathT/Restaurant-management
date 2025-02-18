@@ -33,6 +33,40 @@ const MenuItemSchema = new mongoose.Schema({
       type: Date 
     } 
   },
+  stock: { 
+    type: Number, 
+    required: true, 
+    default: 5
+  },
+  // New fields for customization
+  sizes: [{
+    size: { 
+      type: String, 
+      enum: ["Small", "Medium", "Large"], 
+      required: true 
+    },
+    priceAdjustment: {
+      type: Number, // Optional price change based on size
+      default: 0 
+    }
+  }],
+  addons: [{
+    name: { 
+      type: String, 
+      required: true 
+    },
+    price: { 
+      type: Number, 
+      required: true 
+    }
+  }],
+  dietaryRestrictions: [{
+    restriction: { 
+      type: String, 
+      enum: ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Nut-Free", "Halal", "Kosher"],
+      required: true
+    }
+  }]
 });
 
 const MenuItem = mongoose.model("MenuItem", MenuItemSchema);

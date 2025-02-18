@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const Order = require("../models/orderModel");
 const User = require("../models/userModel");
 const crypto = require('crypto');
+const Notification = require("../models/notificationModel");
 
 
 const generateOTP = () => {
@@ -23,6 +24,11 @@ const deliveryController = {
 
       order.status = "Delivered";
       await order.save();
+      const deliveryStatusNotify = new Notification({
+        recipient: order.user,
+        message: `Delivery status for order ${order._id} has been updated to: ${status}.`
+      });
+      await deliveryStatusNotify.save();
       const driverUser = await User.findOne({ _id: driver });
       driverUser.isAvailable = true;
       await driverUser.save();

@@ -16,7 +16,9 @@ const cartController={
         if (!menuItem) {
           return res.status(404).json({ message: "Item not found" });
         }
-      
+        if(!menuItem.availability){
+          throw new Error("Item not available. Sorry for the inconvenience")
+        }
         const menuItemId = menuItem._id.toString();
       
         // Check if item is already in the cart
