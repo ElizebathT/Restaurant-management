@@ -1,11 +1,10 @@
-const Menu = require("../models/menuModel");
 const Restaurant = require("../models/restaurantModel");
 const asyncHandler = require("express-async-handler");
 
 const restaurantController = {
     // Get the single restaurant details
     getRestaurant: asyncHandler(async (req, res) => {
-        const restaurant = await Restaurant.findOne().populate("owner", "name email").populate("menu").populate("employees");
+        const restaurant = await Restaurant.findOne().populate("owner", "name email");
         if (!restaurant) {
             throw new Error("Restaurant not found");
         }
@@ -50,9 +49,9 @@ const restaurantController = {
         if (!restaurant) {
             throw new Error("Restaurant not found");
         }
-        await Menu.findOneAndDelete({ restaurant: restaurant._id });
+        await Menu.deleteMany();
         await restaurant.deleteOne();
-        res.send({ message: "Restaurant and its menu removed" });
+        res.send({ message: "Restaurant deleted" });
     }),
 };
 
